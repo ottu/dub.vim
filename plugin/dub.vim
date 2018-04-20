@@ -41,20 +41,24 @@ for search_path in search_paths
     " It must execute 'dub describe' with the location of dub.json .
     cd `=search_path`
 
-    let result = []
+    let import_paths = []
+    let string_import_paths = []
     let dub_json = s:JSON.decode( system('dub describe') )
     for package in dub_json.packages
         for import_path in package.importPaths
-            call add(result, package.path . import_path)
+            call add(import_paths, package.path . import_path)
+        endfor
+
+        for string_import_path in package.stringImportPaths
+            let check_path = package.path . string_import_path
+            if glob(check_path) != ""
+                call add(string_import_paths, "-J" . check_path)
+            endif
         endfor
     endfor
-    let g:syntastic_d_include_dirs = result
 
-    " /path/to/dub/dir/views
-    let views_path = search_path . "/views"
-    if glob(views_path) != ""
-        let g:syntastic_d_compiler_options = '-J' . views_path
-    endif
+    let g:syntastic_d_include_dirs = import_paths
+    let g:syntastic_d_compiler_options = join(string_import_paths, " ")
 
     " return before directory.
     cd -
